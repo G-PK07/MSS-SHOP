@@ -1,0 +1,59 @@
+version: '3.9'
+services:
+  nginx:
+    image: nginx:latest
+    restart: always
+    environment:
+      TZ: 'Asia/Bangkok'
+    ports:
+      - '80:80'
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf #สำหรับกรณีที่ต้องการเรียกใช้ไฟล์ default.conf จาก Folder ภายนอก
+      - ./app:/var/www/html                    
+    networks:
+      - web
+  php-fpm-1:
+    build:
+      context: ./php
+    container_name: php-fpm-php-v-8
+    restart: always
+    volumes:
+      - ./app:/var/www/html
+    depends_on:
+      - mysql-database
+    networks:
+      - web                  
+  mysql-database:
+    image: mysql:8.3
+    container_name: mysql-database-php-v-8
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=shopping
+      - ALLOW_EMPTY_PASSWORD=yes    
+    volumes:
+      - ./mysql-data:/var/lib/mysql #กำหนดให้บันทึกฐานข้อมูล ไว้ที่ Folder mysql-data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/1.sql
+    ports:
+      - "3310:3306"  
+    networks:
+      - web  
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin-php-v-8
+    restart: always  
+    environment:
+      PMA_HOST : mysql-database
+      TZ : Asia/Bangkok
+      UPLOAD_LIMIT: 1024M
+      MEMORY_LIMIT: 1024M
+    ports:
+      - 8081:80
+    depends_on:
+      - mysql-database
+    networks:
+      - web
+networks:
+  web:
+    name: web
+
